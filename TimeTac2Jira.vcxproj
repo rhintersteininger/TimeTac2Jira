@@ -19,13 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ConfirmationDialog.cpp" />
     <ClCompile Include="MainApp.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="TimeTacCsvParser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConfirmationDialog.h" />
     <ClInclude Include="MainApp.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="TimeTacCsvParser.h" />

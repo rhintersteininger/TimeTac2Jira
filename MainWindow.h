@@ -6,9 +6,36 @@
 #include "JiraClient.h"
 
 
+
 namespace TimeTac2Jira
 {
-	class MainWindow : public wxFrame
+	class WorklogUpdateEvent;
+	wxDEFINE_EVENT(EVT_WORKLOG_BOOKING_UPDATE, TimeTac2Jira::WorklogUpdateEvent);
+
+	class WorklogUpdateEvent : public wxEvent
+	{
+	public:
+		WorklogUpdateEvent(int id_, std::string status_) : wxEvent(0, EVT_WORKLOG_BOOKING_UPDATE)
+		{
+			_id = id_;
+			_status = status_;
+		}
+
+		int _id;
+		std::string _status;
+
+		wxEvent* Clone() const { return new WorklogUpdateEvent(*this); }
+	};
+
+	typedef void (wxEvtHandler::* WorklogUpdateEventFunction)(TimeTac2Jira::WorklogUpdateEvent&);
+#define WorklogUpdateEventHandler(func) wxEVENT_HANDLER_CAST(WorklogUpdateEventFunction, func)   
+
+	// Optional: define an event table entry
+#define EVT_WORKLOG_UPDATE(id, func) \
+ 	wx__DECLARE_EVT1(EVT_WORKLOG_BOOKING_UPDATE, id, WorklogUpdateEventHandler(func))
+
+
+	class MainWindow : public wxFrame, public wxThreadHelper
 	{
 	public:
 		MainWindow();
@@ -16,7 +43,9 @@ namespace TimeTac2Jira
 
 	private:
 		Jira::JiraHttpClient* _jiraClient;
+
 		std::map<int, Jira::Data::AddWorklog>* _currentWorklogList;
+		wxCriticalSection _currentWorklogListCS; //Protects _currentWorklogList
 
 #pragma region UI
 		wxPanel* _panelBase;
@@ -60,9 +89,18 @@ namespace TimeTac2Jira
 
 #pragma endregion
 
+	protected:
+		virtual wxThread::ExitCode Entry();
+
 	private:
 		void LoadData(wxCommandEvent& event);
 		void BookWorklog(wxCommandEvent& event);
+		void WorklogUpdated(WorklogUpdateEvent& event);
+
+		void OnClose(wxCloseEvent&);
+
+		void InitListView();
+
 
 		std::string to_jira_string(tm* date_)
 		{

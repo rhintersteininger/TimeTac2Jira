@@ -1,12 +1,13 @@
 ﻿#include "MainWindow.h"
 #include "TimeTacCsvParser.h"
-#include "ConfirmationDialog.h"
 
 #define DEBUG
+
 
 wxBEGIN_EVENT_TABLE(TimeTac2Jira::MainWindow, wxFrame)
 EVT_BUTTON(1000, TimeTac2Jira::MainWindow::LoadData)
 EVT_BUTTON(1001, TimeTac2Jira::MainWindow::BookWorklog)
+EVT_WORKLOG_UPDATE(wxID_ANY, TimeTac2Jira::MainWindow::WorklogUpdated)
 wxEND_EVENT_TABLE()
 
 TimeTac2Jira::MainWindow::MainWindow() : wxFrame(nullptr, wxID_ANY, "MainWindow", wxDefaultPosition, wxSize(1000, 720))
@@ -104,15 +105,7 @@ TimeTac2Jira::MainWindow::MainWindow() : wxFrame(nullptr, wxID_ANY, "MainWindow"
 
 	_lstViewWorklogs = new wxListView(_panelBase, wxID_ANY);
 
-	_lstViewWorklogs->AppendColumn("Start");
-	_lstViewWorklogs->AppendColumn("Time Spent");
-	_lstViewWorklogs->AppendColumn("Ticket");
-	_lstViewWorklogs->AppendColumn("Status");
-
-	_lstViewWorklogs->SetColumnWidth(0, wxLIST_AUTOSIZE_USEHEADER);
-	_lstViewWorklogs->SetColumnWidth(1, wxLIST_AUTOSIZE_USEHEADER);
-	_lstViewWorklogs->SetColumnWidth(2, wxLIST_AUTOSIZE_USEHEADER);
-	_lstViewWorklogs->SetColumnWidth(3, wxLIST_AUTOSIZE_USEHEADER);
+	InitListView();
 
 
 	_btnConfirmBookings = new wxButton(_panelBase, 1001, "Confirm and book");
@@ -128,10 +121,31 @@ TimeTac2Jira::MainWindow::MainWindow() : wxFrame(nullptr, wxID_ANY, "MainWindow"
 	_panelBase->SetSizerAndFit(_boxMainContainer);
 }
 
+void TimeTac2Jira::MainWindow::InitListView()
+{
+	_lstViewWorklogs->AppendColumn("Start");
+	_lstViewWorklogs->AppendColumn("Time Spent");
+	_lstViewWorklogs->AppendColumn("Ticket");
+	_lstViewWorklogs->AppendColumn("Status");
+
+	_lstViewWorklogs->SetColumnWidth(0, wxLIST_AUTOSIZE_USEHEADER);
+	_lstViewWorklogs->SetColumnWidth(1, wxLIST_AUTOSIZE_USEHEADER);
+	_lstViewWorklogs->SetColumnWidth(2, wxLIST_AUTOSIZE_USEHEADER);
+	_lstViewWorklogs->SetColumnWidth(3, wxLIST_AUTOSIZE_USEHEADER);
+}
+
 void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
 {
 	if (_jiraClient == nullptr)
 		_jiraClient = new Jira::JiraHttpClient(_txtJiraUsername->GetValue().ToStdString(), _txtJiraPassword->GetValue().ToStdString(), _txtJiraServer->GetValue().ToStdString(), 443);
+
+	if (_currentWorklogList != nullptr)
+	{
+		delete _currentWorklogList;
+		_lstViewWorklogs->ClearAll();
+		InitListView();
+	}
+	
 
 	try
 	{
@@ -180,7 +194,7 @@ void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
 			Jira::Data::AddWorklog worklog;
 			worklog.set_issue_id(issue.get_id());
 			worklog.set_started(std::make_shared<std::string>(to_jira_string(&std::get<0>(*it))));
-			worklog.set_comment(std::make_shared<std::string>("tool-insert on "+currentDateTime));
+			worklog.set_comment(std::make_shared<std::string>("tool-insert on " + currentDateTime));
 
 			worklog.set_time_spent_seconds(std::make_shared<int64_t>((int64_t)(secondsDiff)));
 			worklogs->push_back(worklog);
@@ -240,19 +254,36 @@ void TimeTac2Jira::MainWindow::BookWorklog(wxCommandEvent& event)
 		wxMessageBox("Please load data first", "", wxOK | wxICON_ERROR, _panelBase);
 
 
-	for (std::map<int, Jira::Data::AddWorklog>::iterator it = _currentWorklogList->begin(); it != _currentWorklogList->end(); it++)
+	// we want to start a long task, but we don't want our GUI to block
+	// while it's executed, so we use a thread to do it.
+	if (CreateThread(wxTHREAD_JOINABLE) != wxTHREAD_NO_ERROR)
 	{
-		_lstViewWorklogs->SetItem(it->first, 3, "booking");
-		_lstViewWorklogs->RefreshItem(it->first);
-		bool success = _jiraClient->add_worklog_to_issue(it->second);
-		if (success)
-			_lstViewWorklogs->SetItem(it->first, 3, "OK");
-		else
-			_lstViewWorklogs->SetItem(it->first, 3, "ERROR");
-
-		_lstViewWorklogs->RefreshItem(it->first);
+		wxLogError("Could not create the worker thread!");
+		return;
 	}
+	// go!
+	if (GetThread()->Run() != wxTHREAD_NO_ERROR)
+	{
+		wxLogError("Could not run the worker thread!");
+		return;
+	}
+}
 
+void TimeTac2Jira::MainWindow::WorklogUpdated(TimeTac2Jira::WorklogUpdateEvent& event_)
+{
+	_lstViewWorklogs->SetItem(event_._id, 3, event_._status);
+	_lstViewWorklogs->RefreshItem(event_._id);
+}
+
+void TimeTac2Jira::MainWindow::OnClose(wxCloseEvent&)
+{
+	// important: before terminating, we _must_ wait for our joinable
+	// thread to end, if it's running; in fact it uses variables of this
+	// instance and posts events to *this event handler
+	if (GetThread() &&      // DoStartALongTask() may have not been called
+		GetThread()->IsRunning())
+		GetThread()->Wait();
+	Destroy();
 }
 
 TimeTac2Jira::MainWindow::~MainWindow()
@@ -261,4 +292,25 @@ TimeTac2Jira::MainWindow::~MainWindow()
 		delete _jiraClient;
 	if (_currentWorklogList != nullptr)
 		delete _currentWorklogList;
+}
+
+
+wxThread::ExitCode TimeTac2Jira::MainWindow::Entry()
+{
+	wxCriticalSectionLocker lock(_currentWorklogListCS);
+
+	if (_currentWorklogList == nullptr || _currentWorklogList->empty())
+		wxMessageBox("Please load data first", "", wxOK | wxICON_ERROR, _panelBase);
+
+	for (std::map<int, Jira::Data::AddWorklog>::iterator it = _currentWorklogList->begin(); it != _currentWorklogList->end(); it++)
+	{
+		wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->first, "booking..."));
+		_lstViewWorklogs->RefreshItem(it->first);
+		bool success = _jiraClient->add_worklog_to_issue(it->second);
+		if (success)
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->first, "OK"));
+		else
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->first, "ERROR"));
+	}
+	return (wxThread::ExitCode)0;
 }
