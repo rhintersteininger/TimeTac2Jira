@@ -22,11 +22,13 @@
     <ClCompile Include="MainApp.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="TimeTacCsvParser.cpp" />
+    <ClCompile Include="WorklogDataViewModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainApp.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="TimeTacCsvParser.h" />
+    <ClInclude Include="WorklogDataViewModel.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

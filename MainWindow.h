@@ -2,10 +2,9 @@
 
 #include <wx/wx.h>
 #include <wx/listctrl.h>
-
+#include <wx/dataview.h>
 #include "JiraClient.h"
-
-
+#include "WorklogDataViewModel.h"
 
 namespace TimeTac2Jira
 {
@@ -44,8 +43,6 @@ namespace TimeTac2Jira
 	private:
 		Jira::JiraHttpClient* _jiraClient;
 
-		std::map<int, Jira::Data::AddWorklog>* _currentWorklogList;
-		wxCriticalSection _currentWorklogListCS; //Protects _currentWorklogList
 
 #pragma region UI
 		wxPanel* _panelBase;
@@ -82,9 +79,16 @@ namespace TimeTac2Jira
 
 #pragma region Data Visualisation
 		
-		wxListView* _lstViewWorklogs;
+		WorklogDataViewModel* _worklogDataViewModel;
+		wxCriticalSection _currentWorklogListCS; //Protects _currentWorklogList
+
+
+		wxDataViewCtrl* _lstViewWorklogs;
 		wxButton* _btnConfirmBookings;
 
+		std::string* _testString;
+
+		
 #pragma endregion
 
 #pragma endregion

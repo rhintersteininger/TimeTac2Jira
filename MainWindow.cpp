@@ -1,8 +1,6 @@
 ﻿#include "MainWindow.h"
 #include "TimeTacCsvParser.h"
 
-#define DEBUG
-
 
 wxBEGIN_EVENT_TABLE(TimeTac2Jira::MainWindow, wxFrame)
 EVT_BUTTON(1000, TimeTac2Jira::MainWindow::LoadData)
@@ -52,7 +50,7 @@ TimeTac2Jira::MainWindow::MainWindow() : wxFrame(nullptr, wxID_ANY, "MainWindow"
 
 	_lblSimpleJiraTicket = new wxStaticText(_panelBase, wxID_ANY, "Ticket: ");
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	_txtJiraServer = new wxTextCtrl(_panelBase, wxID_ANY, "dev-rh.atlassian.net");
 	_txtJiraUsername = new wxTextCtrl(_panelBase, wxID_ANY, "dev.rhintersteininger@gmail.com");
 	_txtJiraPassword = new wxTextCtrl(_panelBase, wxID_ANY, "bHpyPhj3OSOgesa99zrM468D");
@@ -103,7 +101,7 @@ TimeTac2Jira::MainWindow::MainWindow() : wxFrame(nullptr, wxID_ANY, "MainWindow"
 
 #pragma region Data Visualisation
 
-	_lstViewWorklogs = new wxListView(_panelBase, wxID_ANY);
+	_lstViewWorklogs = new wxDataViewCtrl(_panelBase, wxID_ANY);
 
 	InitListView();
 
@@ -123,15 +121,27 @@ TimeTac2Jira::MainWindow::MainWindow() : wxFrame(nullptr, wxID_ANY, "MainWindow"
 
 void TimeTac2Jira::MainWindow::InitListView()
 {
-	_lstViewWorklogs->AppendColumn("Start");
-	_lstViewWorklogs->AppendColumn("Time Spent");
-	_lstViewWorklogs->AppendColumn("Ticket");
-	_lstViewWorklogs->AppendColumn("Status");
+	_worklogDataViewModel = new WorklogDataViewModel();
+	_lstViewWorklogs->AssociateModel(_worklogDataViewModel);
+	//_worklogDataViewModel->DecRef();
 
-	_lstViewWorklogs->SetColumnWidth(0, wxLIST_AUTOSIZE_USEHEADER);
-	_lstViewWorklogs->SetColumnWidth(1, wxLIST_AUTOSIZE_USEHEADER);
-	_lstViewWorklogs->SetColumnWidth(2, wxLIST_AUTOSIZE_USEHEADER);
-	_lstViewWorklogs->SetColumnWidth(3, wxLIST_AUTOSIZE_USEHEADER);
+	_lstViewWorklogs->AppendTextColumn("Started", WorklogDataViewModel::Col_Started, wxDATAVIEW_CELL_INERT, wxCOL_WIDTH_AUTOSIZE);
+	_lstViewWorklogs->AppendTextColumn("Time spent", WorklogDataViewModel::Col_TimeSpentSeconds, wxDATAVIEW_CELL_EDITABLE, wxCOL_WIDTH_AUTOSIZE);
+	_lstViewWorklogs->AppendTextColumn("IssueId", WorklogDataViewModel::Col_IssueId, wxDATAVIEW_CELL_EDITABLE, wxCOL_WIDTH_AUTOSIZE);
+	_lstViewWorklogs->AppendTextColumn("Status", WorklogDataViewModel::Col_Status,wxDATAVIEW_CELL_INERT, wxCOL_WIDTH_AUTOSIZE);
+
+
+	//_lstViewWorklogs->AssociateModel(WorklogDataViewModel(_currentWorklogList));
+
+	//_lstViewWorklogs->AppendColumn("Start");
+	//_lstViewWorklogs->AppendColumn("Time Spent");
+	//_lstViewWorklogs->AppendColumn("Ticket");
+	//_lstViewWorklogs->AppendColumn("Status");
+
+	//_lstViewWorklogs->SetColumnWidth(0, wxLIST_AUTOSIZE_USEHEADER);
+	//_lstViewWorklogs->SetColumnWidth(1, wxLIST_AUTOSIZE_USEHEADER);
+	//_lstViewWorklogs->SetColumnWidth(2, wxLIST_AUTOSIZE_USEHEADER);
+	//_lstViewWorklogs->SetColumnWidth(3, wxLIST_AUTOSIZE_USEHEADER);
 }
 
 void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
@@ -139,10 +149,11 @@ void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
 	if (_jiraClient == nullptr)
 		_jiraClient = new Jira::JiraHttpClient(_txtJiraUsername->GetValue().ToStdString(), _txtJiraPassword->GetValue().ToStdString(), _txtJiraServer->GetValue().ToStdString(), 443);
 
-	if (_currentWorklogList != nullptr)
+	if (_worklogDataViewModel != nullptr && _worklogDataViewModel->GetData() != nullptr && !_worklogDataViewModel->GetData()->empty())
 	{
-		delete _currentWorklogList;
-		_lstViewWorklogs->ClearAll();
+		_worklogDataViewModel->DecRef();
+		delete _worklogDataViewModel;
+		_lstViewWorklogs->ClearColumns();
 		InitListView();
 	}
 	
@@ -179,8 +190,8 @@ void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
 
 
 
-		std::vector<Jira::Data::AddWorklog>* worklogs = new std::vector<Jira::Data::AddWorklog>();
-
+		//std::vector<Jira::Data::AddWorklog>* worklogs = new std::vector<Jira::Data::AddWorklog>();
+		int cnt = 0;
 		for (std::vector<std::tuple<tm, tm>>::iterator it = bookings.begin(); it != bookings.end(); ++it)
 		{
 			time_t begin = mktime(&std::get<0>(*it));
@@ -197,40 +208,12 @@ void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
 			worklog.set_comment(std::make_shared<std::string>("tool-insert on " + currentDateTime));
 
 			worklog.set_time_spent_seconds(std::make_shared<int64_t>((int64_t)(secondsDiff)));
-			worklogs->push_back(worklog);
-		}
 
-		std::map<int, Jira::Data::AddWorklog>* worklogMap = new std::map<int, Jira::Data::AddWorklog>();
-		int cnt = 0;
-		for (std::vector<Jira::Data::AddWorklog>::reverse_iterator it = worklogs->rbegin(); it != worklogs->rend(); ++it)
-		{
-			wxListItem item;
-			_lstViewWorklogs->InsertItem(cnt, "");
-			_lstViewWorklogs->SetItem(cnt, 0, *it->get_started());
-
-			int64_t totalSeconds = *it->get_time_spent_seconds();
-
-			int64_t seconds = totalSeconds % 60;
-			int64_t minutes = (totalSeconds / 60) % 60;
-			int64_t hours = (totalSeconds / 60) / 60;
-
-			char buffer[10];
-			snprintf(buffer, 10, "%02d:%02d:%02d", hours, minutes, seconds);
-
-			_lstViewWorklogs->SetItem(cnt, 1, std::string(buffer));
-			_lstViewWorklogs->SetItem(cnt, 2, *it->get_issue_id());
-			_lstViewWorklogs->SetItem(cnt, 3, "pending");
-
-			worklogMap->insert(std::make_pair(cnt, *it));
+			WorklogDataViewItem item = WorklogDataViewItem(cnt, worklog);
+			_worklogDataViewModel->AppendItem(item);
 			cnt++;
 		}
 
-		_currentWorklogList = worklogMap;
-
-		_lstViewWorklogs->SetColumnWidth(0, wxLIST_AUTOSIZE);
-		_lstViewWorklogs->SetColumnWidth(1, wxLIST_AUTOSIZE_USEHEADER);
-		_lstViewWorklogs->SetColumnWidth(2, wxLIST_AUTOSIZE);
-		_lstViewWorklogs->SetColumnWidth(3, wxLIST_AUTOSIZE);
 
 		_lstViewWorklogs->Refresh();
 	}
@@ -250,7 +233,7 @@ void TimeTac2Jira::MainWindow::LoadData(wxCommandEvent& event)
 
 void TimeTac2Jira::MainWindow::BookWorklog(wxCommandEvent& event)
 {
-	if (_currentWorklogList == nullptr || _currentWorklogList->empty())
+	if (_worklogDataViewModel == nullptr || _worklogDataViewModel->GetData() == nullptr || _worklogDataViewModel->GetData()->empty())
 		wxMessageBox("Please load data first", "", wxOK | wxICON_ERROR, _panelBase);
 
 
@@ -271,8 +254,9 @@ void TimeTac2Jira::MainWindow::BookWorklog(wxCommandEvent& event)
 
 void TimeTac2Jira::MainWindow::WorklogUpdated(TimeTac2Jira::WorklogUpdateEvent& event_)
 {
-	_lstViewWorklogs->SetItem(event_._id, 3, event_._status);
-	_lstViewWorklogs->RefreshItem(event_._id);
+	_worklogDataViewModel->SetStatus(event_._id, event_._status);
+	//_lstViewWorklogs->SetItem(event_._id, 3, event_._status);
+	//_lstViewWorklogs->RefreshItem(event_._id);
 }
 
 void TimeTac2Jira::MainWindow::OnClose(wxCloseEvent&)
@@ -290,8 +274,6 @@ TimeTac2Jira::MainWindow::~MainWindow()
 {
 	if (_jiraClient != nullptr)
 		delete _jiraClient;
-	if (_currentWorklogList != nullptr)
-		delete _currentWorklogList;
 }
 
 
@@ -299,18 +281,20 @@ wxThread::ExitCode TimeTac2Jira::MainWindow::Entry()
 {
 	wxCriticalSectionLocker lock(_currentWorklogListCS);
 
-	if (_currentWorklogList == nullptr || _currentWorklogList->empty())
+	std::vector<WorklogDataViewItem>* worklogs = _worklogDataViewModel->GetData();
+
+	if (worklogs == nullptr || worklogs->empty())
 		wxMessageBox("Please load data first", "", wxOK | wxICON_ERROR, _panelBase);
 
-	for (std::map<int, Jira::Data::AddWorklog>::iterator it = _currentWorklogList->begin(); it != _currentWorklogList->end(); it++)
+	for (std::vector<WorklogDataViewItem>::iterator it = worklogs->begin(); it != worklogs->end(); it++)
 	{
-		wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->first, "booking..."));
-		_lstViewWorklogs->RefreshItem(it->first);
-		bool success = _jiraClient->add_worklog_to_issue(it->second);
+		wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, "booking"));
+		//_lstViewWorklogs->RefreshItem(it->first);
+		bool success = _jiraClient->add_worklog_to_issue(it->_worklogItem);
 		if (success)
-			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->first, "OK"));
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, "OK"));
 		else
-			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->first, "ERROR"));
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, "ERROR"));
 	}
 	return (wxThread::ExitCode)0;
 }

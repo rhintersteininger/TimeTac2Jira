@@ -24,6 +24,9 @@
     <ClCompile Include="TimeTacCsvParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WorklogDataViewModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainApp.h">
@@ -33,6 +36,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TimeTacCsvParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WorklogDataViewModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
