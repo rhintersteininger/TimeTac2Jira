@@ -2,19 +2,37 @@
 
 #include <wx/wx.h>
 #include <wx/dataview.h>
+#include <map>
 #include <JiraData.h>
 
 class WorklogDataViewItem
 {
 public:
-	WorklogDataViewItem(int id_, Jira::Data::AddWorklog worklog_, std::string status_ = std::string("pending")) : _id(id_), _status(status_), _worklogItem(worklog_)
+	const static enum class BookingStatus
+	{
+		Pending,
+		Skipped,
+		Booking,
+		Ok,
+		Error
+	};
+
+	WorklogDataViewItem(int id_, Jira::Data::AddWorklog worklog_, BookingStatus status_ = BookingStatus::Pending) : _id(id_), _status(status_), _worklogItem(worklog_), _enabled(true)
 	{
 			
 	}
 
 	int _id;
-	std::string _status;
+	BookingStatus _status;
+	bool _enabled;
 	Jira::Data::AddWorklog _worklogItem;
+
+	static std::string GetStatusString(BookingStatus status_)
+	{
+		return _statusMapping.at(status_);
+	}
+private:
+	static const std::map<BookingStatus, std::string> _statusMapping;
 };
 
 
@@ -23,6 +41,7 @@ class WorklogDataViewModel : public wxDataViewVirtualListModel
 public:
 	enum
 	{
+		Col_Enabled,
 		Col_Started,
 		Col_TimeSpentSeconds,
 		Col_IssueKey,
@@ -30,6 +49,8 @@ public:
 		Col_Status,
 		Col_Max
 	};
+
+	
 
 	WorklogDataViewModel(std::vector<WorklogDataViewItem>* worklog_ = nullptr) : wxDataViewVirtualListModel(worklog_ == nullptr ? 0 : worklog_->size())
 	{
@@ -44,7 +65,7 @@ public:
 		RowAppended();
 	}
 
-	void SetStatus(int id_, std::string status_)
+	void SetStatus(int id_, WorklogDataViewItem::BookingStatus status_)
 	{
 		int cnt = 0;
 		for (std::vector<WorklogDataViewItem>::iterator it = _worklogs->begin(); it != _worklogs->end(); ++it)
@@ -60,14 +81,16 @@ public:
 	}
 
 	std::vector<WorklogDataViewItem>* GetData() { return _worklogs; }
+	
 
-
+		
 protected:
 	virtual unsigned int GetColumnCount() const wxOVERRIDE { return Col_Max; }
 	virtual wxString GetColumnType(unsigned int col) const wxOVERRIDE
 	{
 		switch (col)
 		{
+		case Col_Enabled: return wxT("bool");
 		case Col_Started: return wxT("string"); 
 		case Col_TimeSpentSeconds: return wxT("long");    
 		case Col_IssueId: return wxT("string"); 
@@ -82,4 +105,5 @@ protected:
 private:
 	std::vector<WorklogDataViewItem>* _worklogs;
 	void GetVariantFromCol(wxVariant& variant_, WorklogDataViewItem worklog_, unsigned col) const;
+
 };

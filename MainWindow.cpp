@@ -125,6 +125,7 @@ void TimeTac2Jira::MainWindow::InitListView()
 	_lstViewWorklogs->AssociateModel(_worklogDataViewModel);
 	//_worklogDataViewModel->DecRef();
 
+	_lstViewWorklogs->AppendToggleColumn("", WorklogDataViewModel::Col_Enabled, wxDATAVIEW_CELL_ACTIVATABLE);
 	_lstViewWorklogs->AppendTextColumn("Started", WorklogDataViewModel::Col_Started, wxDATAVIEW_CELL_INERT, wxCOL_WIDTH_AUTOSIZE);
 	_lstViewWorklogs->AppendTextColumn("Time spent", WorklogDataViewModel::Col_TimeSpentSeconds, wxDATAVIEW_CELL_EDITABLE, wxCOL_WIDTH_AUTOSIZE);
 	_lstViewWorklogs->AppendTextColumn("IssueId", WorklogDataViewModel::Col_IssueId, wxDATAVIEW_CELL_EDITABLE, wxCOL_WIDTH_AUTOSIZE);
@@ -288,13 +289,23 @@ wxThread::ExitCode TimeTac2Jira::MainWindow::Entry()
 
 	for (std::vector<WorklogDataViewItem>::iterator it = worklogs->begin(); it != worklogs->end(); it++)
 	{
-		wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, "booking"));
+		if (it->_status == WorklogDataViewItem::BookingStatus::Ok)
+			continue;
+		if (it->_enabled)
+		{
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, WorklogDataViewItem::BookingStatus::Booking));
+		}
+		else
+		{
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, WorklogDataViewItem::BookingStatus::Skipped));
+			continue;
+		}
 		//_lstViewWorklogs->RefreshItem(it->first);
 		bool success = _jiraClient->add_worklog_to_issue(it->_worklogItem);
 		if (success)
-			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, "OK"));
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, WorklogDataViewItem::BookingStatus::Ok));
 		else
-			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, "ERROR"));
+			wxQueueEvent(GetEventHandler(), new TimeTac2Jira::WorklogUpdateEvent(it->_id, WorklogDataViewItem::BookingStatus::Error));
 	}
 	return (wxThread::ExitCode)0;
 }

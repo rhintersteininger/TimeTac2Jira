@@ -12,6 +12,9 @@ bool WorklogDataViewModel::SetValueByRow(const wxVariant& variant, unsigned row,
 		WorklogDataViewItem* item = &_worklogs->at(row);
 		switch (col)
 		{
+		case Col_Enabled:
+			item->_enabled = variant.GetBool();
+			return true;
 		case Col_Started:
 			item->_worklogItem.set_started(std::make_shared<std::string>(variant.GetString()));
 			return true;
@@ -40,8 +43,7 @@ bool WorklogDataViewModel::SetValueByRow(const wxVariant& variant, unsigned row,
 			item->_worklogItem.set_issue_id(std::make_shared<std::string>(variant.GetString()));
 			return true;
 		case Col_Status:
-			item->_status = variant.GetString();
-			return true;
+			return false;
 		}
 	}
 	catch (std::exception e)
@@ -55,6 +57,9 @@ void WorklogDataViewModel::GetVariantFromCol(wxVariant& variant_, WorklogDataVie
 {
 	switch (col)
 	{
+	case Col_Enabled:
+		variant_ = worklog_._enabled;
+		break;
 	case Col_Started:
 	{
 		std::shared_ptr<std::string> startTime = worklog_._worklogItem.get_started();
@@ -95,10 +100,18 @@ void WorklogDataViewModel::GetVariantFromCol(wxVariant& variant_, WorklogDataVie
 		break;
 	}
 	case Col_Status:
-		variant_ = worklog_._status;
+		variant_ = WorklogDataViewItem::GetStatusString(worklog_._status);
 		break;
 	default:
 		throw std::exception("Column not supported:" + col);
 	}
 }
+
+const std::map <WorklogDataViewItem::BookingStatus, std::string> WorklogDataViewItem::_statusMapping = {
+		{WorklogDataViewItem::BookingStatus::Pending, "pending"},
+		{WorklogDataViewItem::BookingStatus::Ok, "OK"},
+		{WorklogDataViewItem::BookingStatus::Booking, "booking"},
+		{WorklogDataViewItem::BookingStatus::Error, "Error"},
+		{WorklogDataViewItem::BookingStatus::Skipped, "skipped"}
+};
 

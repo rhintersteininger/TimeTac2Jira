@@ -14,14 +14,14 @@ namespace TimeTac2Jira
 	class WorklogUpdateEvent : public wxEvent
 	{
 	public:
-		WorklogUpdateEvent(int id_, std::string status_) : wxEvent(0, EVT_WORKLOG_BOOKING_UPDATE)
+		WorklogUpdateEvent(int id_, WorklogDataViewItem::BookingStatus status_) : wxEvent(0, EVT_WORKLOG_BOOKING_UPDATE)
 		{
 			_id = id_;
 			_status = status_;
 		}
 
 		int _id;
-		std::string _status;
+		WorklogDataViewItem::BookingStatus _status;
 
 		wxEvent* Clone() const { return new WorklogUpdateEvent(*this); }
 	};
