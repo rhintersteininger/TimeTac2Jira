@@ -164,6 +164,7 @@ QVariant TimeTac::TimeTableEntryTableModel::get_background_role(int row_, int co
 		break;
 	}
 	}
+	return QVariant();
 }
 
 QVariant TimeTac::TimeTableEntryTableModel::get_foreground_role(int row_, int col_) const
