@@ -3,7 +3,7 @@
 
 std::vector<TimeTac::TimeTableEntry> TimeTac::TimeTableCsvParser::parse(std::string filePath_)
 {
-    io::CSVReader<5, io::trim_chars<' ', '\t'>, io::no_quote_escape<';'>> in(filePath_);
+    io::CSVReader<5, io::trim_chars<' ', '\t'>, io::double_quote_escape<';', '"'>> in(filePath_);
     in.read_header(io::ignore_extra_column, "Datum", "K", "G", "Pausen", "Kommentar");
 
     std::vector<TimeTac::TimeTableEntry> timeTableEntries;
