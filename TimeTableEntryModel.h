@@ -29,11 +29,9 @@ namespace TimeTac
 		{
 			_qtFrom = QDateTime::fromTime_t(mktime(&from_));
 			_qtUntil = QDateTime::fromTime_t(mktime(&until_));
-
 		}
 
 		int _id;
-
 		bool _enabled;
 		tm _from;
 		tm _until;
@@ -43,6 +41,8 @@ namespace TimeTac
 		BookingStatus _status;
 
 		static QString status_to_string(BookingStatus status_);
+		void set_from_time(int hour_, int minutes_);
+		void set_until_time(int hour_, int minutes_);
 	};
 
 	Q_DECLARE_METATYPE(TimeTableItemModel)
@@ -81,7 +81,10 @@ namespace TimeTac
 		void add_item(TimeTableItemModel item_);
 		void set_items(std::vector<TimeTableItemModel> items_);
 
+		TimeTableItemModel get_item_at(int row_) { return _items.at(row_); }
 		std::vector<TimeTableItemModel> get_items() { return _items; };
+
+		void split_item(int item_, int splitAtHour_, int splitAtMinute_);
 	
 	private:
 		std::vector<TimeTableItemModel> _items;
@@ -91,6 +94,8 @@ namespace TimeTac
 		QVariant get_textalignment_role(int row_, int col_) const;
 		QVariant get_background_role(int row_, int col_) const;
 		QVariant get_foreground_role(int row_, int col_) const;
+
+		TimeTableItemModel* get_mutable_item(int id_);
 
 	public slots:
 		void status_changed(TimeTableItemModel item_, TimeTableItemModel::BookingStatus status_);

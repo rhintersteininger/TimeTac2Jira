@@ -32,8 +32,6 @@ std::vector<TimeTac::TimeTableEntry> TimeTac::TimeTableCsvParser::parse(std::str
 
         if (!pauses.empty())
         {
-            pauses.erase(pauses.begin(), pauses.begin() + 1);
-            pauses.erase(pauses.end() - 1, pauses.end());
             std::vector<std::string> splittedPauses;
             boost::split(splittedPauses, pauses, [](char c) {return c == ';'; });
 

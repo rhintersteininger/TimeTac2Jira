@@ -13,8 +13,14 @@ class TimeTac2Jira : public QMainWindow
 public:
     TimeTac2Jira(QWidget *parent = Q_NULLPTR);
 
+    const QString QACTION_SPLIT_TIMERANGE = "Split";
+
 public slots:
     void load_timetac_csv_file(bool checked_ = false);
+    void custom_context_menu_requested(QPoint point_);
+    void load_csv_data();
+    void book_worklog();
+    void time_table_context_menu_triggered(QAction* action_);
 
 private:
     Ui::TimeTac2JiraClass ui;
@@ -25,8 +31,7 @@ private:
 
     void setup_ui();
     void bind_signal_slots();
-    void load_csv_data();
-    void book_worklog();
+
 
 //private slots:
 //    void worklog_status_changed(TimeTac::TimeTableItemModel worklog_, TimeTac::TimeTableItemModel::BookingStatus status_);

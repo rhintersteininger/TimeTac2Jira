@@ -2,6 +2,22 @@
 
 #include <qbrush.h>
 
+void TimeTac::TimeTableItemModel::set_from_time(int hour_, int minute_)
+{
+	_from.tm_hour = hour_;
+	_from.tm_min = minute_;
+
+	_qtFrom = QDateTime::fromTime_t(mktime(&_from));
+}
+
+void TimeTac::TimeTableItemModel::set_until_time(int hour_, int minute_)
+{
+	_until.tm_hour = hour_;
+	_until.tm_min = minute_;
+
+	_qtUntil = QDateTime::fromTime_t(mktime(&_until));
+}
+
 
 Q_INVOKABLE int TimeTac::TimeTableEntryTableModel::rowCount(const QModelIndex& parent) const
 {
@@ -42,11 +58,11 @@ Qt::ItemFlags TimeTac::TimeTableEntryTableModel::flags(const QModelIndex& index)
 	switch (col)
 	{
 	case Columns::Enabled:
-		return Qt::ItemIsUserCheckable | Qt::ItemIsEnabled;
+		return Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 	case Columns::TicketKey:
-		return Qt::ItemIsEditable | Qt::ItemIsEnabled;
+		return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 	}
-	return Qt::NoItemFlags;
+	return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
 }
 
 
@@ -96,8 +112,23 @@ QVariant TimeTac::TimeTableEntryTableModel::headerData(int section, Qt::Orientat
 
 void TimeTac::TimeTableEntryTableModel::add_item(TimeTableItemModel item_)
 {
-	_items.push_back(item_);
-	this->insertRow(_items.size() - 1);
+	int cnt = 0;
+	std::vector<TimeTableItemModel>::iterator insertIt;
+	for (std::vector<TimeTableItemModel>::iterator it = _items.begin(); it != _items.end(); ++it)
+	{
+		if (it->_id == item_._id)
+		{
+			insertIt = it;
+			break;
+		}
+		cnt++;
+	}
+
+	this->beginInsertRows(QModelIndex(), cnt+1, cnt+1);
+
+	_items.insert(insertIt+1, item_);
+	
+	this->endInsertRows();
 }
 
 void TimeTac::TimeTableEntryTableModel::set_items(std::vector<TimeTableItemModel> items_)
@@ -215,4 +246,30 @@ void TimeTac::TimeTableEntryTableModel::status_changed(TimeTableItemModel item_,
 		}
 		indexCnt++;
 	}
+}
+
+TimeTac::TimeTableItemModel* TimeTac::TimeTableEntryTableModel::get_mutable_item(int id_)
+{
+	for (std::vector<TimeTac::TimeTableItemModel>::iterator it = _items.begin(); it != _items.end(); ++it)
+	{
+		if (it->_id == id_)
+			return it._Ptr;
+	}
+	return nullptr;
+}
+
+void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, int splitAtMinute_)
+{
+	TimeTableItemModel* itemToSplit = get_mutable_item(item_);
+	TimeTableItemModel newItem = TimeTableItemModel(*itemToSplit); //create copy of item
+
+	itemToSplit->set_until_time(splitAtHour_, splitAtMinute_);
+	newItem.set_from_time(splitAtHour_, splitAtMinute_);
+
+	QModelIndex idxTopLeft = index(0, 0);
+	QModelIndex idxBotRight = index(_items.size()-1, Columns::Col_Max-1);
+	
+	add_item(newItem);
+
+	emit dataChanged(idxTopLeft, idxBotRight);
 }

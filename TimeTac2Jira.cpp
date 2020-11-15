@@ -5,57 +5,61 @@
 
 #include <qfiledialog.h>
 #include <qmessagebox.h>
-//#include <qsignalspy.h>
+#include <qinputdialog.h>
 
 
-TimeTac2Jira::TimeTac2Jira(QWidget *parent)
-    : QMainWindow(parent)
+TimeTac2Jira::TimeTac2Jira(QWidget* parent)
+	: QMainWindow(parent)
 {
-    ui.setupUi(this);
-    setup_ui();
-    bind_signal_slots();
-} 
+	ui.setupUi(this);
+	setup_ui();
+	bind_signal_slots();
+}
 
 void TimeTac2Jira::setup_ui()
 {
 #ifdef _DEBUG
-    ui.txtJiraServer->setText("dev-rh.atlassian.net");
-    ui.txtJiraUsername->setText("dev.rhintersteininger@gmail.com");
-    ui.txtJiraPassword->setText("bHpyPhj3OSOgesa99zrM468D");
+	ui.txtJiraServer->setText("dev-rh.atlassian.net");
+	ui.txtJiraUsername->setText("dev.rhintersteininger@gmail.com");
+	ui.txtJiraPassword->setText("bHpyPhj3OSOgesa99zrM468D");
 	_loadedFileName = "C:\\temp\\timeTac.csv";
 	ui.lblLoadedCsvFile->setText(_loadedFileName);
 #endif
-    ui.tblTimeTable->setModel(&_timeTableEntryTableModel);
 
-	ui.tblTimeTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch); 
+	ui.tblTimeTable->setModel(&_timeTableEntryTableModel);
+	ui.tblTimeTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
+	ui.tblTimeTable->setContextMenuPolicy(Qt::CustomContextMenu);
+	ui.tblTimeTable->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+	ui.tblTimeTable->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
 }
 
 void TimeTac2Jira::bind_signal_slots()
 {
-    connect(ui.btnLoadCsvFile, &QPushButton::clicked, this, &TimeTac2Jira::load_timetac_csv_file);
-    connect(ui.btnLoadData, &QPushButton::clicked, this, &TimeTac2Jira::load_csv_data);
+	connect(ui.btnLoadCsvFile, &QPushButton::clicked, this, &TimeTac2Jira::load_timetac_csv_file);
+	connect(ui.btnLoadData, &QPushButton::clicked, this, &TimeTac2Jira::load_csv_data);
 	connect(ui.btnBook, &QPushButton::clicked, this, &TimeTac2Jira::book_worklog);
+	connect(ui.tblTimeTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(custom_context_menu_requested(QPoint)));
 }
 
 void TimeTac2Jira::load_timetac_csv_file(bool checked)
 {
-   _loadedFileName = QFileDialog::getOpenFileName(this, "Open TimeTac Csv File", "", "Csv Files (*.csv *.txt)");
-   ui.lblLoadedCsvFile->setText(_loadedFileName);
+	_loadedFileName = QFileDialog::getOpenFileName(this, "Open TimeTac Csv File", "", "Csv Files (*.csv *.txt)");
+	ui.lblLoadedCsvFile->setText(_loadedFileName);
 }
 
 void TimeTac2Jira::load_csv_data()
 {
-    if (_loadedFileName.isEmpty())
-    {
-        QMessageBox msgBox;
-        msgBox.setText("Please load Csv File first");
-        msgBox.exec();
-        return;
-    }
+	if (_loadedFileName.isEmpty())
+	{
+		QMessageBox msgBox;
+		msgBox.setText("Please load Csv File first");
+		msgBox.exec();
+		return;
+	}
 
-    std::vector<TimeTac::TimeTableEntry> timeTableEntries = TimeTac::TimeTableCsvParser::parse(_loadedFileName.toStdString());
+	std::vector<TimeTac::TimeTableEntry> timeTableEntries = TimeTac::TimeTableCsvParser::parse(_loadedFileName.toStdString());
 	std::vector<std::tuple<tm, tm>> bookings;
-    
+
 	for (std::vector<TimeTac::TimeTableEntry>::iterator it = timeTableEntries.begin(); it != timeTableEntries.end(); ++it)
 	{
 		tm start = it->get_come_date();
@@ -111,5 +115,52 @@ void TimeTac2Jira::book_worklog()
 
 	//QSignalSpy spy(bookingTask, &WorklogBookingTask::worklog_status_changed);
 	QThreadPool::globalInstance()->start(bookingTask);
+}
+
+void TimeTac2Jira::custom_context_menu_requested(QPoint point_)
+{
+	QMenu* menu = new QMenu(this);
+	QAction* action = new QAction(QACTION_SPLIT_TIMERANGE, this);
+	action->setData(point_);
+	menu->addAction(action);
+	menu->popup(ui.tblTimeTable->viewport()->mapToGlobal(point_));
+	connect(menu, SIGNAL(triggered(QAction*)), this, SLOT(time_table_context_menu_triggered(QAction*)));
+}
+
+void TimeTac2Jira::time_table_context_menu_triggered(QAction* action_)
+{
+	if (action_->text() == QACTION_SPLIT_TIMERANGE)
+	{
+		QPoint point = action_->data().toPoint();
+		int row = ui.tblTimeTable->rowAt(point.y());
+		TimeTac::TimeTableItemModel rowItem = _timeTableEntryTableModel.get_item_at(row);
+
+		QString splitAt = QInputDialog::getText(this, "Split at", "Enter Time where to Split (hh:mm)");
+		if (splitAt.isEmpty())
+			return;
+
+		int hour;
+		int minute;
+		sscanf_s(splitAt.toStdString().c_str(), "%d:%d", &hour, &minute);
+
+		bool outOfRange = false;
+
+		if (hour < rowItem._from.tm_hour || hour > rowItem._until.tm_hour)
+			outOfRange = true;
+		else if (hour == rowItem._from.tm_hour && minute < rowItem._from.tm_min)
+			outOfRange = true;
+		else if (hour == rowItem._until.tm_hour && minute > rowItem._until.tm_min)
+			outOfRange = true;
+
+		if (outOfRange) 
+		{
+			char buffer[50];
+			snprintf(&buffer[0], 50, "Enter a time between %02d:%02d and %02d:%02d", rowItem._from.tm_hour, rowItem._from.tm_min, rowItem._until.tm_hour, rowItem._until.tm_min);
+			QMessageBox::warning(this, "Error", QString(buffer));
+			return;
+		}
+
+		_timeTableEntryTableModel.split_item(rowItem._id, hour, minute);
+	}
 }
 
