@@ -34,7 +34,7 @@ public:
 
 			if (it->_ticketKey.isEmpty())
 			{
-				emit worklog_status_changed(*it, TimeTac::TimeTableItemModel::BookingStatus::Error);
+				emit worklog_status_changed(*it, TimeTac::TimeTableItemModel::BookingStatus::Skipped);
 				continue;
 			}
 
