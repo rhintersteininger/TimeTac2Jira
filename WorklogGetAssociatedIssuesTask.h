@@ -26,7 +26,12 @@ public:
 	void run() override
 	{
 		Jira::Data::GetUser currentUser = _jiraClient->get_current_user();
-		_userId = std::string(*currentUser.get_account_id());
+		if (currentUser.get_account_id() != nullptr)
+			_userId = std::string(*currentUser.get_account_id());
+		else
+			_userId = _user;
+		
+
 		for (std::vector<TimeTac::TimeTableItemModel>::iterator it = _worklogs.begin(); it != _worklogs.end(); it++)
 		{
 			emit worklog_status_changed(*it, TimeTac::TimeTableItemModel::BookingStatus::GetAssociatedTickets);
