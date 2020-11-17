@@ -1,12 +1,19 @@
 #include "TimeTac2Jira.h"
 #include "TimeTacCsvParser.h"
 #include "WorklogBookingTask.h"
+#include "WorklogGetAssociatedIssuesTask.h"
 
-
+#include <sstream>
 #include <qfiledialog.h>
 #include <qmessagebox.h>
 #include <qinputdialog.h>
+#include <QtConcurrent/qtconcurrentrun.h>
+#include <QtConcurrent/qtconcurrent_global.h>
+#include <qthread.h>
+#include <qfuturewatcher.h>
 
+Q_DECLARE_METATYPE(Jira::Data::SearchResults)
+Q_DECLARE_OPAQUE_POINTER(Jira::Data::SearchResults*)
 
 TimeTac2Jira::TimeTac2Jira(QWidget* parent)
 	: QMainWindow(parent)
@@ -49,6 +56,10 @@ void TimeTac2Jira::load_timetac_csv_file(bool checked)
 
 void TimeTac2Jira::load_csv_data()
 {
+	if (_jiraClient == nullptr)
+		_jiraClient = std::make_shared<Jira::JiraHttpClient>(ui.txtJiraUsername->text().toStdString(), ui.txtJiraPassword->text().toStdString(), ui.txtJiraServer->text().toStdString(), 443);
+
+
 	if (_loadedFileName.isEmpty())
 	{
 		QMessageBox msgBox;
@@ -101,6 +112,21 @@ void TimeTac2Jira::load_csv_data()
 	ui.tblTimeTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
 	ui.tblTimeTable->horizontalHeader()->setSectionResizeMode(TimeTac::TimeTableEntryTableModel::Columns::Enabled, QHeaderView::ResizeMode::ResizeToContents);
 
+	if (ui.checkAutoSearchTickets->isChecked())
+	{
+		//Disable booking while fetching tickets
+		ui.btnBook->setEnabled(false);
+		WorklogGetAssociatedIssuesTask* getAssociatedIssueTask = new WorklogGetAssociatedIssuesTask(ui.txtJiraUsername->text().toStdString(), _jiraClient, items);
+		connect(getAssociatedIssueTask, &WorklogGetAssociatedIssuesTask::worklog_status_changed, &_timeTableEntryTableModel, &TimeTac::TimeTableEntryTableModel::status_changed, Qt::QueuedConnection);
+		connect(getAssociatedIssueTask, &WorklogGetAssociatedIssuesTask::get_associated_issues_task_finished, &_timeTableEntryTableModel, &TimeTac::TimeTableEntryTableModel::get_associated_issues_finished, Qt::BlockingQueuedConnection);
+		connect(getAssociatedIssueTask, &WorklogGetAssociatedIssuesTask::finished, this, &TimeTac2Jira::fetch_associated_issues_finished, Qt::BlockingQueuedConnection);
+		QThreadPool::globalInstance()->start(getAssociatedIssueTask);
+	}
+}
+
+void TimeTac2Jira::fetch_associated_issues_finished()
+{
+	ui.btnBook->setEnabled(true);
 }
 
 void TimeTac2Jira::book_worklog()
@@ -111,7 +137,7 @@ void TimeTac2Jira::book_worklog()
 		_jiraClient = std::make_shared<Jira::JiraHttpClient>(ui.txtJiraUsername->text().toStdString(), ui.txtJiraPassword->text().toStdString(), ui.txtJiraServer->text().toStdString(), 443);
 
 	WorklogBookingTask* bookingTask = new WorklogBookingTask(_jiraClient, items);
-	auto connection = connect(bookingTask, &WorklogBookingTask::worklog_status_changed, &_timeTableEntryTableModel, &TimeTac::TimeTableEntryTableModel::status_changed, Qt::QueuedConnection);
+	connect(bookingTask, &WorklogBookingTask::worklog_status_changed, &_timeTableEntryTableModel, &TimeTac::TimeTableEntryTableModel::status_changed, Qt::QueuedConnection);
 
 	//QSignalSpy spy(bookingTask, &WorklogBookingTask::worklog_status_changed);
 	QThreadPool::globalInstance()->start(bookingTask);
@@ -163,4 +189,6 @@ void TimeTac2Jira::time_table_context_menu_triggered(QAction* action_)
 		_timeTableEntryTableModel.split_item(rowItem._id, hour, minute);
 	}
 }
+
+
 

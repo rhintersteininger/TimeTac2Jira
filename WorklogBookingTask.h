@@ -77,7 +77,7 @@ private:
 	bool create_jira_worklog(TimeTac::TimeTableItemModel itemModel_, Jira::Data::AddWorklog& worklog_)
 	{
 		qint64 secondsDiff = itemModel_._qtFrom.secsTo(itemModel_._qtUntil);
-		std::string started = to_jira_string(&itemModel_._from);//(Qt::ISODateWithMs);
+		std::string started = TimeTac::TimeTableItemModel::to_jira_string(&itemModel_._from);//(Qt::ISODateWithMs);
 		std::string issueId;
 
 		std::map<std::string, std::string>::iterator issueCacheIt = _issueKeyIdCache.find(itemModel_._ticketKey.toStdString());
@@ -106,12 +106,5 @@ private:
 		worklog_.set_time_spent_seconds(std::make_shared<int64_t>(secondsDiff));
 		worklog_.set_issue_id(std::make_shared<std::string>(issueId));
 		return true;
-	}
-
-	std::string to_jira_string(tm* date_)
-	{
-		char buffer[80];
-		size_t size = strftime(buffer, 80, "%FT%T.000%z", date_);
-		return std::string(buffer);
 	}
 };

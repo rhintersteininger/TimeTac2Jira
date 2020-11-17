@@ -200,6 +200,20 @@
               </property>
              </widget>
             </item>
+            <item row="3" column="6">
+             <widget class="QLabel" name="lblAutoSearchTickets">
+              <property name="text">
+               <string>Auto Search Tickets</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="7">
+             <widget class="QCheckBox" name="checkAutoSearchTickets">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
          </layout>

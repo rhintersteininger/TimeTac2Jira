@@ -60,5 +60,8 @@
     <QtMoc Include="WorklogBookingTask.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="WorklogGetAssociatedIssuesTask.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

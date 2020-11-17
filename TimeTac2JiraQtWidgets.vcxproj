@@ -128,9 +128,15 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="WorklogGetAssociatedIssuesTask.h" />
     <QtMoc Include="WorklogBookingTask.h" />
     <QtMoc Include="TimeTableEntryModel.h" />
     <ClInclude Include="TimeTacCsvParser.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JiraClient\JiraClient.vcxproj">
+      <Project>{6ec12575-0e8e-404f-b62a-0d8be09e9f3a}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

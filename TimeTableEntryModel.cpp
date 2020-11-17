@@ -1,6 +1,7 @@
 #include "TimeTableEntryModel.h"
 
 #include <qbrush.h>
+#include <qinputdialog.h>
 
 void TimeTac::TimeTableItemModel::set_from_time(int hour_, int minute_)
 {
@@ -70,6 +71,10 @@ QString TimeTac::TimeTableItemModel::status_to_string(BookingStatus status_)
 {
 	switch (status_)
 	{
+	case BookingStatus::GetAssociatedTickets:
+		return "Fetch associated Issues";
+	case BookingStatus::NoAssociatedTicketsFound:
+		return "No associated Issues found";
 	case BookingStatus::Pending:
 		return "Pending";
 	case BookingStatus::Booking:
@@ -263,6 +268,14 @@ void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, 
 	TimeTableItemModel* itemToSplit = get_mutable_item(item_);
 	TimeTableItemModel newItem = TimeTableItemModel(*itemToSplit); //create copy of item
 
+	int newId = 0;
+	for(std::vector<TimeTableItemModel>::iterator it = _items.begin(); it != _items.end(); ++it)
+	{
+		if (it->_id > newId) newId = it->_id;
+	}
+
+	newItem._id = ++newId;
+
 	itemToSplit->set_until_time(splitAtHour_, splitAtMinute_);
 	newItem.set_from_time(splitAtHour_, splitAtMinute_);
 
@@ -273,3 +286,36 @@ void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, 
 
 	emit dataChanged(idxTopLeft, idxBotRight);
 }
+ 
+
+void TimeTac::TimeTableEntryTableModel::get_associated_issues_finished(TimeTableItemModel item_, Jira::Data::SearchResults* results_)
+{
+	std::shared_ptr<std::vector<Jira::Data::Issue>> issues = results_->get_issues();
+	
+	if (issues->size() > 1)
+	{
+		QStringList tickets = QStringList();
+		for (std::vector<Jira::Data::Issue>::iterator it = issues->begin(); it != issues->end(); ++it)
+		{
+			std::string key(*it->get_key());
+			tickets.append(QString(key.c_str()));
+		}
+		bool ok = false;
+		QString item = QInputDialog::getItem(_parent, "Choose Ticket", QString(("Please choose the Ticket you want to use between " + TimeTableItemModel::to_time(&item_._from) + " and " + TimeTableItemModel::to_time(&item_._until)).c_str()), tickets, 0, true, &ok);
+		if (ok)
+			set_ticket_key(item_, item.toStdString());
+	}
+	else
+	{
+		set_ticket_key(item_, *results_->get_issues()->begin()->get_key().get());
+	}
+	
+}
+
+void TimeTac::TimeTableEntryTableModel::set_ticket_key(TimeTableItemModel item_, std::string ticketKey_)
+{
+	TimeTableItemModel* model = get_mutable_item(item_._id);
+	model->_ticketKey = QString(ticketKey_.c_str());
+	emit dataChanged(index(0, Columns::TicketKey), index(_items.size() - 1, Columns::TicketKey));
+}
+
