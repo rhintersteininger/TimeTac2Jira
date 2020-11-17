@@ -5,6 +5,7 @@
 #include "TimeTacCsvParser.h"
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <JiraData.h>
+#include <JiraClient.h>
 
 namespace TimeTac
 {
@@ -112,6 +113,8 @@ namespace TimeTac
 
 		void split_item(int item_, int splitAtHour_, int splitAtMinute_);
 
+		void set_jira_client(Jira::JiraHttpClient* client_) { _jiraClient = client_; }
+
 	
 	private:
 		std::vector<TimeTableItemModel> _items;
@@ -126,6 +129,9 @@ namespace TimeTac
 		TimeTableItemModel* get_mutable_item(int id_);
 
 		void set_ticket_key(TimeTableItemModel item_, std::string ticketKey_);
+
+		Jira::JiraHttpClient* _jiraClient;
+		
 
 	public slots:
 		void status_changed(TimeTableItemModel item_, TimeTableItemModel::BookingStatus status_);

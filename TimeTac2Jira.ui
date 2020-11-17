@@ -300,6 +300,17 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>txtJiraServer</tabstop>
+  <tabstop>txtJiraUsername</tabstop>
+  <tabstop>txtJiraPassword</tabstop>
+  <tabstop>btnLoadCsvFile</tabstop>
+  <tabstop>txtDefaultTicket</tabstop>
+  <tabstop>checkAutoSearchTickets</tabstop>
+  <tabstop>btnLoadData</tabstop>
+  <tabstop>btnBook</tabstop>
+  <tabstop>tblTimeTable</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

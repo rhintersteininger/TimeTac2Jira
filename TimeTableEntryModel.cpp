@@ -291,19 +291,50 @@ void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, 
 void TimeTac::TimeTableEntryTableModel::get_associated_issues_finished(TimeTableItemModel item_, Jira::Data::SearchResults* results_)
 {
 	std::shared_ptr<std::vector<Jira::Data::Issue>> issues = results_->get_issues();
-	
+#ifdef _DEBUG
+	if (true)
+#else
 	if (issues->size() > 1)
+#endif
 	{
 		QStringList tickets = QStringList();
+		QStringList ticketsText = QStringList();
+		int cnt = 1;
 		for (std::vector<Jira::Data::Issue>::iterator it = issues->begin(); it != issues->end(); ++it)
 		{
 			std::string key(*it->get_key());
+
+			Jira::Data::GetIssue issueData = _jiraClient->get_issue(key);
+
+			QString text((std::to_string(cnt) + ". " + key + " | " + *issueData.get_fields()->get_summary()).c_str());
+
 			tickets.append(QString(key.c_str()));
+			ticketsText.append(text);
+			cnt++;
+#ifdef _DEBUG
+			tickets.append(QString(key.c_str()));
+			ticketsText.append(text);
+			cnt++;
+#endif
 		}
-		bool ok = false;
-		QString item = QInputDialog::getItem(_parent, "Choose Ticket", QString(("Please choose the Ticket you want to use between " + TimeTableItemModel::to_time(&item_._from) + " and " + TimeTableItemModel::to_time(&item_._until)).c_str()), tickets, 0, true, &ok);
-		if (ok)
-			set_ticket_key(item_, item.toStdString());
+		
+
+		QInputDialog dialog = QInputDialog(_parent);
+		dialog.setComboBoxItems(ticketsText);
+		dialog.setOption(QInputDialog::InputDialogOption::UseListViewForComboBoxItems, true);
+		dialog.setWindowTitle("Choose Ticket");
+		dialog.setModal(true);
+		dialog.setLabelText(QString(("Please choose the Ticket you want to use between " + TimeTableItemModel::to_jira_string_short(&item_._from) + " and " + TimeTableItemModel::to_time(&item_._until)).c_str()));
+
+		if (int i = dialog.exec())
+		{
+			QStringList lst = dialog.textValue().split(QLatin1Char('.'));
+			int cnt = lst.first().toInt();
+
+			QString ticket = tickets.at(cnt - 1);
+
+			set_ticket_key(item_, ticket.toStdString());
+		}
 	}
 	else
 	{

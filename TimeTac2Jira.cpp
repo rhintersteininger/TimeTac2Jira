@@ -18,6 +18,7 @@ Q_DECLARE_OPAQUE_POINTER(Jira::Data::SearchResults*)
 TimeTac2Jira::TimeTac2Jira(QWidget* parent)
 	: QMainWindow(parent)
 {
+	
 	ui.setupUi(this);
 	setup_ui();
 	bind_signal_slots();
@@ -58,6 +59,8 @@ void TimeTac2Jira::load_csv_data()
 {
 	if (_jiraClient == nullptr)
 		_jiraClient = std::make_shared<Jira::JiraHttpClient>(ui.txtJiraUsername->text().toStdString(), ui.txtJiraPassword->text().toStdString(), ui.txtJiraServer->text().toStdString(), 443);
+
+	_timeTableEntryTableModel.set_jira_client(_jiraClient.get());
 
 
 	if (_loadedFileName.isEmpty())
