@@ -18,7 +18,7 @@ Q_DECLARE_OPAQUE_POINTER(Jira::Data::SearchResults*)
 TimeTac2Jira::TimeTac2Jira(QWidget* parent)
 	: QMainWindow(parent)
 {
-	
+
 	ui.setupUi(this);
 	setup_ui();
 	bind_signal_slots();
@@ -47,6 +47,7 @@ void TimeTac2Jira::bind_signal_slots()
 	connect(ui.btnLoadData, &QPushButton::clicked, this, &TimeTac2Jira::load_csv_data);
 	connect(ui.btnBook, &QPushButton::clicked, this, &TimeTac2Jira::book_worklog);
 	connect(ui.tblTimeTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(custom_context_menu_requested(QPoint)));
+	connect(ui.checkAutoSearchTickets, &QCheckBox::stateChanged, this, &TimeTac2Jira::use_auto_ticket_search_changed);
 }
 
 void TimeTac2Jira::load_timetac_csv_file(bool checked)
@@ -181,7 +182,7 @@ void TimeTac2Jira::time_table_context_menu_triggered(QAction* action_)
 		else if (hour == rowItem._until.tm_hour && minute > rowItem._until.tm_min)
 			outOfRange = true;
 
-		if (outOfRange) 
+		if (outOfRange)
 		{
 			char buffer[50];
 			snprintf(&buffer[0], 50, "Enter a time between %02d:%02d and %02d:%02d", rowItem._from.tm_hour, rowItem._from.tm_min, rowItem._until.tm_hour, rowItem._until.tm_min);
@@ -193,5 +194,20 @@ void TimeTac2Jira::time_table_context_menu_triggered(QAction* action_)
 	}
 }
 
+void TimeTac2Jira::use_auto_ticket_search_changed(int state_)
+{
+	switch (state_)
+	{
+	case Qt::Unchecked:
+		ui.txtDefaultTicket->setEnabled(true);
+		break;
+	case Qt::Checked:
+		ui.txtDefaultTicket->setEnabled(false);
+		break;
+	case Qt::PartiallyChecked:
+		break;
+	}
+
+}
 
 

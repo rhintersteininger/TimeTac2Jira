@@ -291,11 +291,8 @@ void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, 
 void TimeTac::TimeTableEntryTableModel::get_associated_issues_finished(TimeTableItemModel item_, Jira::Data::SearchResults* results_)
 {
 	std::shared_ptr<std::vector<Jira::Data::Issue>> issues = results_->get_issues();
-#ifdef _DEBUG
-	if (true)
-#else
+
 	if (issues->size() > 1)
-#endif
 	{
 		QStringList tickets = QStringList();
 		QStringList ticketsText = QStringList();
@@ -311,11 +308,6 @@ void TimeTac::TimeTableEntryTableModel::get_associated_issues_finished(TimeTable
 			tickets.append(QString(key.c_str()));
 			ticketsText.append(text);
 			cnt++;
-#ifdef _DEBUG
-			tickets.append(QString(key.c_str()));
-			ticketsText.append(text);
-			cnt++;
-#endif
 		}
 		
 

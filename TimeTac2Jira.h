@@ -22,6 +22,7 @@ public slots:
     void book_worklog();
     void time_table_context_menu_triggered(QAction* action_);
     void fetch_associated_issues_finished();
+    void use_auto_ticket_search_changed(int state_);
 
 private:
     Ui::TimeTac2JiraClass ui;

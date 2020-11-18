@@ -57,23 +57,7 @@ private:
 		try
 		{
 			std::stringstream jql;
-//#ifdef _DEBUG
-//			tm test = tm(item_._from);
-//			test.tm_year = 2020-1900;
-//			test.tm_hour = 7;
-//			test.tm_min = 26;
-//			test.tm_mday = 17;
-//			test.tm_mon = 11-1;
-//			//project = FSUI AND assignee = rhintersteininger AND status changed TO "In Progress" BEFORE "-2w" AND status changed TO "Implementation Finished" AFTER "-2w"
-//			/*jql << "assignee = \"" << _user << "\" AND status changed TO \"In Progress\" BEFORE \"" << TimeTac::TimeTableItemModel::to_jira_string_short(&test);
-//			jql << "\" AND status changed TO \"Implementation Finished\" AFTER \"" << TimeTac::TimeTableItemModel::to_jira_string_short(&test) << "\"";*/
-//			jql << "status WAS \"In Progress\" BY \""<< _userId << "\" DURING (\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&test) << "\",\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&test) << "\")";
-//#else
-			//project = FSUI AND assignee = rhintersteininger AND status changed TO "In Progress" BEFORE "-2w" AND status changed TO "Implementation Finished" AFTER "-2w"
-			/*jql << "assignee = \"" << _user << "\" AND status changed TO \"In Progress\" BEFORE \"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._from);
-			jql << "\" AND status changed TO \"Implementation Finished\" AFTER \"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._from) << "\"";*/
 			jql << "status WAS \"In Progress\" BY \"" << _userId << "\" DURING (\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._from) << "\",\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._until) << "\")";
-//#endif
 			std::string jqlstr = jql.str();
 			Jira::Data::SearchResults* results = new Jira::Data::SearchResults(_jiraClient->search(jql.str()));
 			return results;
