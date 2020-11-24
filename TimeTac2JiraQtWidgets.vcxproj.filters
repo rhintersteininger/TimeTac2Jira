@@ -27,9 +27,6 @@
     <QtRcc Include="TimeTac2Jira.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <QtUic Include="TimeTac2Jira.ui">
-      <Filter>Resource Files</Filter>
-    </QtUic>
     <QtMoc Include="TimeTac2Jira.h">
       <Filter>Header Files</Filter>
     </QtMoc>
@@ -45,6 +42,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TimeTableEntryModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TicketChooserDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -63,5 +63,16 @@
     <QtMoc Include="WorklogGetAssociatedIssuesTask.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="TicketChooserDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="TicketChooserDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="TimeTac2Jira.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
 </Project>

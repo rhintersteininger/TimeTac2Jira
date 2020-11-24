@@ -52,7 +52,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>G:\Programmieren\Repositories\rhintersteininger\TimeTac2JiraQtWidgets\lib\csv;%(AdditionalIncludeDirectories);G:\Programmieren\Repositories\rhintersteininger\JiraClient\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>G:\Programmieren\Repositories\rhintersteininger\TimeTac2JiraQtWidgets\lib\csv;%(AdditionalIncludeDirectories);G:\Programmieren\Repositories\rhintersteininger\JiraClient\include;.\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
@@ -74,7 +74,7 @@
       <AdditionalDependencies>JiraClient.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
-      <AdditionalIncludeDirectories>G:\Programmieren\Repositories\rhintersteininger\TimeTac2JiraQtWidgets\lib\csv;$(Qt_INCLUDEPATH_);%(AdditionalIncludeDirectories);G:\Programmieren\Repositories\rhintersteininger\JiraClient\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>G:\Programmieren\Repositories\rhintersteininger\TimeTac2JiraQtWidgets\lib\csv;$(Qt_INCLUDEPATH_);%(AdditionalIncludeDirectories);G:\Programmieren\Repositories\rhintersteininger\JiraClient\include;.\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
@@ -119,9 +119,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TicketChooserDialog.cpp" />
     <ClCompile Include="TimeTableEntryModel.cpp" />
     <ClCompile Include="TimeTacCsvParser.cpp" />
     <QtRcc Include="TimeTac2Jira.qrc" />
+    <QtUic Include="TicketChooserDialog.ui" />
     <QtUic Include="TimeTac2Jira.ui" />
     <QtMoc Include="TimeTac2Jira.h" />
     <ClCompile Include="TimeTac2Jira.cpp" />
@@ -131,6 +133,7 @@
     <QtMoc Include="WorklogGetAssociatedIssuesTask.h" />
     <QtMoc Include="WorklogBookingTask.h" />
     <QtMoc Include="TimeTableEntryModel.h" />
+    <QtMoc Include="TicketChooserDialog.h" />
     <ClInclude Include="TimeTacCsvParser.h" />
   </ItemGroup>
   <ItemGroup>

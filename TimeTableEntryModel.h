@@ -70,6 +70,7 @@ namespace TimeTac
 			size_t size = strftime(buffer, 80, "%H:%M", date_);
 			return std::string(buffer);
 		}
+
 	};
 
 	Q_DECLARE_METATYPE(TimeTac::TimeTableItemModel)
@@ -105,13 +106,13 @@ namespace TimeTac
 		virtual Q_INVOKABLE Qt::ItemFlags flags(const QModelIndex& index) const override;
 		virtual Q_INVOKABLE bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
 
-		void add_item(TimeTableItemModel item_);
+		void add_item(TimeTableItemModel item_, TimeTableItemModel itemBeforeNewItem_);
 		void set_items(std::vector<TimeTableItemModel> items_);
 
 		TimeTableItemModel get_item_at(int row_) { return _items.at(row_); }
 		std::vector<TimeTableItemModel> get_items() { return _items; };
 
-		void split_item(int item_, int splitAtHour_, int splitAtMinute_);
+		TimeTableItemModel split_item(int item_, int splitAtHour_, int splitAtMinute_);
 
 		void set_jira_client(Jira::JiraHttpClient* client_) { _jiraClient = client_; }
 
@@ -129,6 +130,8 @@ namespace TimeTac
 		TimeTableItemModel* get_mutable_item(int id_);
 
 		void set_ticket_key(TimeTableItemModel item_, std::string ticketKey_);
+
+		std::vector<std::tuple<QDateTime, QDateTime>> get_time_in_progess(TimeTableItemModel item_, Jira::Data::GetIssue issue_);
 
 		Jira::JiraHttpClient* _jiraClient;
 		

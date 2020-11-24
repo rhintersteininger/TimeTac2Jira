@@ -1,4 +1,5 @@
 #include "TimeTableEntryModel.h"
+#include "TicketChooserDialog.h"
 
 #include <qbrush.h>
 #include <qinputdialog.h>
@@ -115,13 +116,13 @@ QVariant TimeTac::TimeTableEntryTableModel::headerData(int section, Qt::Orientat
 	return QVariant();
 }
 
-void TimeTac::TimeTableEntryTableModel::add_item(TimeTableItemModel item_)
+void TimeTac::TimeTableEntryTableModel::add_item(TimeTableItemModel item_, TimeTableItemModel itemBeforeNewItem_)
 {
 	int cnt = 0;
 	std::vector<TimeTableItemModel>::iterator insertIt;
 	for (std::vector<TimeTableItemModel>::iterator it = _items.begin(); it != _items.end(); ++it)
 	{
-		if (it->_id == item_._id)
+		if (it->_id == itemBeforeNewItem_._id)
 		{
 			insertIt = it;
 			break;
@@ -263,7 +264,7 @@ TimeTac::TimeTableItemModel* TimeTac::TimeTableEntryTableModel::get_mutable_item
 	return nullptr;
 }
 
-void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, int splitAtMinute_)
+TimeTac::TimeTableItemModel TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, int splitAtMinute_)
 {
 	TimeTableItemModel* itemToSplit = get_mutable_item(item_);
 	TimeTableItemModel newItem = TimeTableItemModel(*itemToSplit); //create copy of item
@@ -278,13 +279,15 @@ void TimeTac::TimeTableEntryTableModel::split_item(int item_, int splitAtHour_, 
 
 	itemToSplit->set_until_time(splitAtHour_, splitAtMinute_);
 	newItem.set_from_time(splitAtHour_, splitAtMinute_);
+	newItem._status = TimeTableItemModel::BookingStatus::Pending;
 
 	QModelIndex idxTopLeft = index(0, 0);
 	QModelIndex idxBotRight = index(_items.size()-1, Columns::Col_Max-1);
 	
-	add_item(newItem);
+	add_item(newItem, *itemToSplit);
 
 	emit dataChanged(idxTopLeft, idxBotRight);
+	return newItem;
 }
  
 
@@ -292,40 +295,80 @@ void TimeTac::TimeTableEntryTableModel::get_associated_issues_finished(TimeTable
 {
 	std::shared_ptr<std::vector<Jira::Data::Issue>> issues = results_->get_issues();
 
+#ifdef _DEBUG
+	//issues->push_back(issues->at(0));
+#endif
+
 	if (issues->size() > 1)
 	{
 		QStringList tickets = QStringList();
 		QStringList ticketsText = QStringList();
+
+		std::vector<Jira::Data::GetIssue> getIssueData;
+
 		int cnt = 1;
 		for (std::vector<Jira::Data::Issue>::iterator it = issues->begin(); it != issues->end(); ++it)
 		{
-			std::string key(*it->get_key());
-
-			Jira::Data::GetIssue issueData = _jiraClient->get_issue(key);
-
-			QString text((std::to_string(cnt) + ". " + key + " | " + *issueData.get_fields()->get_summary()).c_str());
-
-			tickets.append(QString(key.c_str()));
-			ticketsText.append(text);
-			cnt++;
+			Jira::Data::GetIssue issueData = _jiraClient->get_issue(*it->get_key());
+			getIssueData.push_back(issueData);
 		}
+	
+
+		TicketChooserDialog dialog = TicketChooserDialog(item_, getIssueData, _parent);
 		
-
-		QInputDialog dialog = QInputDialog(_parent);
-		dialog.setComboBoxItems(ticketsText);
-		dialog.setOption(QInputDialog::InputDialogOption::UseListViewForComboBoxItems, true);
-		dialog.setWindowTitle("Choose Ticket");
-		dialog.setModal(true);
-		dialog.setLabelText(QString(("Please choose the Ticket you want to use between " + TimeTableItemModel::to_jira_string_short(&item_._from) + " and " + TimeTableItemModel::to_time(&item_._until)).c_str()));
-
-		if (int i = dialog.exec())
+		if (dialog.exec())
 		{
-			QStringList lst = dialog.textValue().split(QLatin1Char('.'));
-			int cnt = lst.first().toInt();
+			QDateTime itemFrom = item_._qtFrom;
+			QDateTime itemUntil = item_._qtUntil;
+			int totalSeconds = itemFrom.secsTo(itemUntil);
 
-			QString ticket = tickets.at(cnt - 1);
+			//issue -> <startime, totalIssueSeconds>
+			std::vector< std::tuple< Jira::Data::GetIssue, int >> secondsPerIssue;
 
-			set_ticket_key(item_, ticket.toStdString());
+			int totalIssuesSeconds = 0;
+			std::vector<Jira::Data::GetIssue> selectedIssues = dialog.get_selected_issues();
+			for (std::vector<Jira::Data::GetIssue>::iterator it = selectedIssues.begin(); it != selectedIssues.end(); ++it)
+			{
+				int totalIssueSeconds = 0;
+				std::vector<std::tuple<QDateTime, QDateTime>> timeragesForIssue = get_time_in_progess(item_, *it);
+				for (std::vector<std::tuple<QDateTime, QDateTime>>::iterator timeRangeIt = timeragesForIssue.begin(); timeRangeIt != timeragesForIssue.end(); ++timeRangeIt)
+				{
+					QDateTime start = std::get<0>(*timeRangeIt);//qMax(std::get<0>(*timeRangeIt), item_._qtFrom);
+					if (start < item_._qtFrom)
+						start = item_._qtFrom;
+
+					QDateTime end = std::get<1>(*timeRangeIt);
+					if (end > item_._qtUntil)
+						end = item_._qtUntil;
+								
+					totalIssueSeconds += start.secsTo(end);
+				}
+				totalIssuesSeconds += totalIssueSeconds;
+				secondsPerIssue.push_back(std::make_tuple(*it, totalIssueSeconds));
+			}
+
+			TimeTableItemModel currentItem = item_;
+			TimeTableItemModel nextItem;
+			QDateTime itemStartTime = item_._qtFrom;
+
+			for (std::vector<std::tuple<Jira::Data::GetIssue, int>>::iterator it = secondsPerIssue.begin(); it != secondsPerIssue.end(); ++it)
+			{
+				float percentage = ((100 / (float)totalIssuesSeconds) * (float)std::get<1>(*it));
+				int percentageSeconds = ((totalSeconds / (float)100) * percentage);
+				itemStartTime = itemStartTime.addSecs(percentageSeconds);
+
+				//Do not split last issue
+				if (it == secondsPerIssue.end()-1)
+				{
+					set_ticket_key(currentItem, *std::get<0>(*it).get_key());
+				}
+				else
+				{
+					nextItem = split_item((currentItem._id), itemStartTime.time().hour(), itemStartTime.time().minute());
+					set_ticket_key(currentItem, *std::get<0>(*it).get_key());
+					currentItem = nextItem;
+				}
+			}
 		}
 	}
 	else
@@ -334,6 +377,75 @@ void TimeTac::TimeTableEntryTableModel::get_associated_issues_finished(TimeTable
 	}
 	
 }
+
+std::vector<std::tuple<QDateTime, QDateTime>> TimeTac::TimeTableEntryTableModel::get_time_in_progess(TimeTableItemModel item_, Jira::Data::GetIssue issue_)
+{
+	std::vector<std::tuple<QDateTime, QDateTime>> timeranges;
+
+	Jira::Data::Changelog changelog = *issue_.get_changelog();
+	std::vector<Jira::Data::ChangeHistory> changeHistory = *changelog.get_histories();
+
+	QDateTime* start = nullptr;
+	QDateTime* end = nullptr;
+
+	for (std::vector<Jira::Data::ChangeHistory>::reverse_iterator it = changeHistory.rbegin(); it != changeHistory.rend(); ++it)
+	{
+		std::string createdAt = *it->get_created();
+		QDateTime createdAtTime = QDateTime::fromString(QString(createdAt.c_str()), Qt::DateFormat::ISODateWithMs);
+		bool isValid = createdAtTime.isValid();
+		std::vector<Jira::Data::ChangeItem> changeItem = *it->get_items();
+
+		bool fromInProgess = false;
+		bool toInProgess = false;
+		for (std::vector<Jira::Data::ChangeItem>::iterator changeItemIt = changeItem.begin(); changeItemIt != changeItem.end(); ++changeItemIt)
+		{
+			std::string field = *changeItemIt->get_field();
+			if (field.compare("status") == 0)
+			{
+				fromInProgess = (changeItemIt->get_from_string()->compare("In Progress") == 0);
+				toInProgess = (changeItemIt->get_to_string()->compare("In Progress") == 0);
+				break;
+			}
+		}
+
+		if (toInProgess && start == nullptr)
+		{
+			start = new QDateTime(createdAtTime);
+		}
+		if (fromInProgess && start != nullptr)
+		{
+			end = new QDateTime(createdAtTime);
+		}
+		if (start != nullptr && end != nullptr)
+		{
+			timeranges.push_back(std::make_tuple(*start, *end));
+			start = nullptr;
+			end = nullptr;
+		}
+	}
+
+	if (start != nullptr)
+	{
+		if (end == nullptr)
+			end = &item_._qtUntil;
+		timeranges.push_back(std::make_tuple(*start, *end));
+	}
+
+	std::vector<std::tuple<QDateTime, QDateTime>> finalTimeranges;
+
+	for (std::vector<std::tuple<QDateTime, QDateTime>>::iterator it = timeranges.begin(); it != timeranges.end(); ++it)
+	{
+		//Started in the future
+		if (std::get<0>(*it) > item_._qtUntil) continue;
+		//Item ended in the past
+		if (std::get<1>(*it) < item_._qtFrom) continue;
+
+		finalTimeranges.push_back(*it);
+	}
+
+	return finalTimeranges;
+}
+
 
 void TimeTac::TimeTableEntryTableModel::set_ticket_key(TimeTableItemModel item_, std::string ticketKey_)
 {
