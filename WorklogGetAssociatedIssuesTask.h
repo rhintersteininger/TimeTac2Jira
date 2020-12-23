@@ -34,6 +34,8 @@ public:
 
 		for (std::vector<TimeTac::TimeTableItemModel>::iterator it = _worklogs.begin(); it != _worklogs.end(); it++)
 		{
+			if (!it->_ticketKey.isEmpty()) continue;
+
 			emit worklog_status_changed(*it, TimeTac::TimeTableItemModel::BookingStatus::GetAssociatedTickets);
 			Jira::Data::SearchResults* results = get_associated_issues(*it);
 			if (results == nullptr || results->get_issues() == nullptr || results->get_issues()->empty())			{

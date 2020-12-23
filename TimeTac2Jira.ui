@@ -49,7 +49,7 @@
            <number>10</number>
           </property>
           <item>
-           <layout class="QGridLayout" name="jiraLayout" rowstretch="0,0,0,0,0,0" columnstretch="0,10,1,0,4,1,0,4,1,4">
+           <layout class="QGridLayout" name="jiraLayout" rowstretch="0,0,0,0,0,0,0" columnstretch="0,10,1,0,4,1,0,4,1,4">
             <property name="leftMargin">
              <number>25</number>
             </property>
@@ -62,31 +62,22 @@
             <property name="bottomMargin">
              <number>0</number>
             </property>
-            <item row="1" column="6">
-             <widget class="QLabel" name="lblDefaultTicket">
-              <property name="text">
-               <string>Default-Ticket</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="1">
              <widget class="QLineEdit" name="txtJiraServer"/>
             </item>
-            <item row="1" column="2">
-             <spacer name="horizontalSpacer">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+            <item row="3" column="6">
+             <widget class="QLabel" name="lblAutoSearchTickets">
+              <property name="text">
+               <string>Auto Search Tickets</string>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>50</width>
-                <height>20</height>
-               </size>
+             </widget>
+            </item>
+            <item row="5" column="3">
+             <widget class="QLabel" name="lblOutlookCSV">
+              <property name="text">
+               <string>Outlook CSV File:</string>
               </property>
-             </spacer>
+             </widget>
             </item>
             <item row="5" column="0">
              <widget class="QLabel" name="lblJiraPassword">
@@ -98,6 +89,20 @@
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="7">
+             <widget class="QCheckBox" name="checkAutoSearchTickets">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QLineEdit" name="txtJiraPassword">
+              <property name="echoMode">
+               <enum>QLineEdit::Password</enum>
               </property>
              </widget>
             </item>
@@ -114,42 +119,8 @@
               </property>
              </spacer>
             </item>
-            <item row="1" column="7">
-             <widget class="QLineEdit" name="txtDefaultTicket"/>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="lblJiraUsername">
-              <property name="text">
-               <string>Username:</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="9">
-             <widget class="QPushButton" name="btnLoadData">
-              <property name="text">
-               <string>Load Data</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="lblJiraServer">
-              <property name="text">
-               <string>Jira Server:</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="4">
-             <widget class="QPushButton" name="btnLoadCsvFile">
-              <property name="text">
-               <string>Load TimeTac File...</string>
-              </property>
-             </widget>
+            <item row="3" column="1">
+             <widget class="QLineEdit" name="txtJiraUsername"/>
             </item>
             <item row="1" column="8">
              <spacer name="horizontalSpacer_4">
@@ -164,6 +135,26 @@
               </property>
              </spacer>
             </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="lblJiraServer">
+              <property name="text">
+               <string>Jira Server:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="6">
+             <widget class="QLabel" name="lblDefaultTicket">
+              <property name="text">
+               <string>Default-Ticket</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
             <item row="1" column="4">
              <widget class="QLabel" name="lblLoadedCsvFile">
               <property name="text">
@@ -177,13 +168,10 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
-             <widget class="QLineEdit" name="txtJiraUsername"/>
-            </item>
-            <item row="5" column="1">
-             <widget class="QLineEdit" name="txtJiraPassword">
-              <property name="echoMode">
-               <enum>QLineEdit::Password</enum>
+            <item row="3" column="4">
+             <widget class="QPushButton" name="btnLoadCsvFile">
+              <property name="text">
+               <string>Load TimeTac File...</string>
               </property>
              </widget>
             </item>
@@ -200,17 +188,53 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="6">
-             <widget class="QLabel" name="lblAutoSearchTickets">
+            <item row="3" column="0">
+             <widget class="QLabel" name="lblJiraUsername">
               <property name="text">
-               <string>Auto Search Tickets</string>
+               <string>Username:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
-            <item row="3" column="7">
-             <widget class="QCheckBox" name="checkAutoSearchTickets">
+            <item row="1" column="7">
+             <widget class="QLineEdit" name="txtDefaultTicket"/>
+            </item>
+            <item row="5" column="4">
+             <widget class="QLabel" name="lblLoadedOutlookCsvFile">
               <property name="text">
-               <string/>
+               <string>...</string>
+              </property>
+              <property name="margin">
+               <number>5</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="9">
+             <widget class="QPushButton" name="btnLoadData">
+              <property name="text">
+               <string>Load Data</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>50</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="6" column="4">
+             <widget class="QPushButton" name="btnLoadOutlookCsvFile">
+              <property name="text">
+               <string>Load Outlook CSV</string>
               </property>
              </widget>
             </item>

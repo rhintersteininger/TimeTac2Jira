@@ -119,10 +119,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="OutlookCsvParser.cpp" />
+    <ClCompile Include="OutlookEventChooserDialog.cpp" />
     <ClCompile Include="TicketChooserDialog.cpp" />
     <ClCompile Include="TimeTableEntryModel.cpp" />
     <ClCompile Include="TimeTacCsvParser.cpp" />
     <QtRcc Include="TimeTac2Jira.qrc" />
+    <QtUic Include="OutlookEventChooserDialog.ui" />
     <QtUic Include="TicketChooserDialog.ui" />
     <QtUic Include="TimeTac2Jira.ui" />
     <QtMoc Include="TimeTac2Jira.h" />
@@ -134,6 +137,8 @@
     <QtMoc Include="WorklogBookingTask.h" />
     <QtMoc Include="TimeTableEntryModel.h" />
     <QtMoc Include="TicketChooserDialog.h" />
+    <ClInclude Include="OutlookCsvParser.h" />
+    <QtMoc Include="OutlookEventChooserDialog.h" />
     <ClInclude Include="TimeTacCsvParser.h" />
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,9 @@
 #include "TimeTac2Jira.h"
 #include "TimeTacCsvParser.h"
+#include "OutlookCsvParser.h"
 #include "WorklogBookingTask.h"
 #include "WorklogGetAssociatedIssuesTask.h"
+#include "OutlookEventChooserDialog.h"
 
 #include <sstream>
 #include <qfiledialog.h>
@@ -30,8 +32,12 @@ void TimeTac2Jira::setup_ui()
 	ui.txtJiraServer->setText("dev-rh.atlassian.net");
 	ui.txtJiraUsername->setText("dev.rhintersteininger@gmail.com");
 	ui.txtJiraPassword->setText("bHpyPhj3OSOgesa99zrM468D");
-	_loadedFileName = "C:\\temp\\timeTac.csv";
-	ui.lblLoadedCsvFile->setText(_loadedFileName);
+
+	_loadedTimeTacCsvFileName = "C:\\temp\\timeTac.csv";
+	ui.lblLoadedCsvFile->setText(_loadedTimeTacCsvFileName);
+	_loadedOutlookCsvFileName = "C:\\temp\\Calender.csv";
+	ui.lblLoadedOutlookCsvFile->setText(_loadedOutlookCsvFileName);
+	
 #endif
 
 	ui.tblTimeTable->setModel(&_timeTableEntryTableModel);
@@ -48,12 +54,19 @@ void TimeTac2Jira::bind_signal_slots()
 	connect(ui.btnBook, &QPushButton::clicked, this, &TimeTac2Jira::book_worklog);
 	connect(ui.tblTimeTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(custom_context_menu_requested(QPoint)));
 	connect(ui.checkAutoSearchTickets, &QCheckBox::stateChanged, this, &TimeTac2Jira::use_auto_ticket_search_changed);
+	connect(ui.btnLoadOutlookCsvFile, &QPushButton::clicked, this, &TimeTac2Jira::load_outlook_csv_file);
+}
+
+void TimeTac2Jira::load_outlook_csv_file(bool checked)
+{
+	_loadedOutlookCsvFileName = QFileDialog::getOpenFileName(this, "Open Outlook Csv File", "", "Csv Files (*.csv *.txt)");
+	ui.lblLoadedOutlookCsvFile->setText(_loadedOutlookCsvFileName);
 }
 
 void TimeTac2Jira::load_timetac_csv_file(bool checked)
 {
-	_loadedFileName = QFileDialog::getOpenFileName(this, "Open TimeTac Csv File", "", "Csv Files (*.csv *.txt)");
-	ui.lblLoadedCsvFile->setText(_loadedFileName);
+	_loadedTimeTacCsvFileName = QFileDialog::getOpenFileName(this, "Open TimeTac Csv File", "", "Csv Files (*.csv *.txt)");
+	ui.lblLoadedCsvFile->setText(_loadedTimeTacCsvFileName);
 }
 
 void TimeTac2Jira::load_csv_data()
@@ -64,7 +77,7 @@ void TimeTac2Jira::load_csv_data()
 	_timeTableEntryTableModel.set_jira_client(_jiraClient.get());
 
 
-	if (_loadedFileName.isEmpty())
+	if (_loadedTimeTacCsvFileName.isEmpty())
 	{
 		QMessageBox msgBox;
 		msgBox.setText("Please load Csv File first");
@@ -72,7 +85,7 @@ void TimeTac2Jira::load_csv_data()
 		return;
 	}
 
-	std::vector<TimeTac::TimeTableEntry> timeTableEntries = TimeTac::TimeTableCsvParser::parse(_loadedFileName.toStdString());
+	std::vector<TimeTac::TimeTableEntry> timeTableEntries = TimeTac::TimeTableCsvParser::parse(_loadedTimeTacCsvFileName.toStdString());
 	std::vector<std::tuple<tm, tm>> bookings;
 
 	for (std::vector<TimeTac::TimeTableEntry>::iterator it = timeTableEntries.begin(); it != timeTableEntries.end(); ++it)
@@ -116,15 +129,62 @@ void TimeTac2Jira::load_csv_data()
 	ui.tblTimeTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
 	ui.tblTimeTable->horizontalHeader()->setSectionResizeMode(TimeTac::TimeTableEntryTableModel::Columns::Enabled, QHeaderView::ResizeMode::ResizeToContents);
 
+	if (!_loadedOutlookCsvFileName.isEmpty())
+	{
+		prefill_data_with_events();
+	}
+
 	if (ui.checkAutoSearchTickets->isChecked())
 	{
 		//Disable booking while fetching tickets
 		ui.btnBook->setEnabled(false);
-		WorklogGetAssociatedIssuesTask* getAssociatedIssueTask = new WorklogGetAssociatedIssuesTask(ui.txtJiraUsername->text().toStdString(), _jiraClient, items);
+		WorklogGetAssociatedIssuesTask* getAssociatedIssueTask = new WorklogGetAssociatedIssuesTask(ui.txtJiraUsername->text().toStdString(), _jiraClient, _timeTableEntryTableModel.get_items());
 		connect(getAssociatedIssueTask, &WorklogGetAssociatedIssuesTask::worklog_status_changed, &_timeTableEntryTableModel, &TimeTac::TimeTableEntryTableModel::status_changed, Qt::QueuedConnection);
 		connect(getAssociatedIssueTask, &WorklogGetAssociatedIssuesTask::get_associated_issues_task_finished, &_timeTableEntryTableModel, &TimeTac::TimeTableEntryTableModel::get_associated_issues_finished, Qt::BlockingQueuedConnection);
 		connect(getAssociatedIssueTask, &WorklogGetAssociatedIssuesTask::finished, this, &TimeTac2Jira::fetch_associated_issues_finished, Qt::BlockingQueuedConnection);
 		QThreadPool::globalInstance()->start(getAssociatedIssueTask);
+	}
+}
+
+void TimeTac2Jira::prefill_data_with_events()
+{
+	std::vector<Outlook::OutlookEntry> outlookEntries = Outlook::OutlookCsvParser::parse(_loadedOutlookCsvFileName.toStdString());
+
+	OutlookEventChooserDialog eventChooser = OutlookEventChooserDialog(outlookEntries, this);
+
+	if (eventChooser.exec())
+	{
+		std::vector<std::tuple<Outlook::OutlookEntry, std::string>> outlookTickets = eventChooser.get_selected_items();
+		std::vector<TimeTac::TimeTableItemModel> items = _timeTableEntryTableModel.get_items();
+
+		for (std::vector<TimeTac::TimeTableItemModel>::iterator it = items.begin(); it != items.end(); ++it)
+		{
+			for (std::vector<std::tuple<Outlook::OutlookEntry, std::string>>::iterator itTick = outlookTickets.begin(); itTick != outlookTickets.end(); ++itTick)
+			{
+				time_t timeTacFrom = std::mktime(&it->_from);
+				time_t timeTacUntil = std::mktime(&it->_until);
+
+				tm eventFromTm = tm(std::get<0>(*itTick).get_from_date());
+				time_t eventFrom = std::mktime(&eventFromTm);
+				tm eventUntilTm = tm(std::get<0>(*itTick).get_until_date());
+				time_t eventUntil = std::mktime(&eventUntilTm);
+
+				if (timeTacFrom < eventFrom && timeTacUntil > eventFrom)
+				{
+					TimeTac::TimeTableItemModel newItem = _timeTableEntryTableModel.split_item(it->_id, eventFromTm.tm_hour, eventFromTm.tm_min);
+
+					time_t newItemTimeTacUntil = std::mktime(&newItem._until);
+
+					if (eventUntil < newItemTimeTacUntil)
+					{
+						_timeTableEntryTableModel.split_item(newItem._id, eventUntilTm.tm_hour, eventUntilTm.tm_min);
+					}
+
+					_timeTableEntryTableModel.set_ticket_key(newItem, std::get<1>(*itTick));
+				}
+			}
+		}
+
 	}
 }
 

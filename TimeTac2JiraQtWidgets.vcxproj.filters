@@ -47,9 +47,18 @@
     <ClCompile Include="TicketChooserDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OutlookCsvParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutlookEventChooserDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TimeTacCsvParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlookCsvParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -66,12 +75,18 @@
     <QtMoc Include="TicketChooserDialog.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="OutlookEventChooserDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="TicketChooserDialog.ui">
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="TimeTac2Jira.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="OutlookEventChooserDialog.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>

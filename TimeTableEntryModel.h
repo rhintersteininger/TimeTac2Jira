@@ -115,6 +115,7 @@ namespace TimeTac
 		TimeTableItemModel split_item(int item_, int splitAtHour_, int splitAtMinute_);
 
 		void set_jira_client(Jira::JiraHttpClient* client_) { _jiraClient = client_; }
+		void set_ticket_key(TimeTableItemModel item_, std::string ticketKey_);
 
 	
 	private:
@@ -129,7 +130,6 @@ namespace TimeTac
 
 		TimeTableItemModel* get_mutable_item(int id_);
 
-		void set_ticket_key(TimeTableItemModel item_, std::string ticketKey_);
 
 		std::vector<std::tuple<QDateTime, QDateTime>> get_time_in_progess(TimeTableItemModel item_, Jira::Data::GetIssue issue_);
 
