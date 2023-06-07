@@ -33,8 +33,8 @@ namespace TimeTac
 
 		TimeTableItemModel(int id_, tm from_, tm until_, QString ticketKey_) : _id(id_), _enabled(true), _from(from_), _until(until_), _ticketKey(ticketKey_), _status(BookingStatus::Pending)
 		{
-			_qtFrom = QDateTime::fromTime_t(mktime(&from_));
-			_qtUntil = QDateTime::fromTime_t(mktime(&until_));
+			_qtFrom = QDateTime::fromSecsSinceEpoch(mktime(&from_));
+			_qtUntil = QDateTime::fromSecsSinceEpoch(mktime(&until_));
 		}
 
 		int _id;

@@ -9,7 +9,7 @@ void TimeTac::TimeTableItemModel::set_from_time(int hour_, int minute_)
 	_from.tm_hour = hour_;
 	_from.tm_min = minute_;
 
-	_qtFrom = QDateTime::fromTime_t(mktime(&_from));
+	_qtFrom = QDateTime::fromSecsSinceEpoch(mktime(&_from));
 }
 
 void TimeTac::TimeTableItemModel::set_until_time(int hour_, int minute_)
@@ -17,7 +17,7 @@ void TimeTac::TimeTableItemModel::set_until_time(int hour_, int minute_)
 	_until.tm_hour = hour_;
 	_until.tm_min = minute_;
 
-	_qtUntil = QDateTime::fromTime_t(mktime(&_until));
+	_qtUntil = QDateTime::fromSecsSinceEpoch(mktime(&_until));
 }
 
 
@@ -155,9 +155,9 @@ QVariant TimeTac::TimeTableEntryTableModel::get_display_role(int row_, int col_)
 	case Columns::Enabled:
 		return QVariant();
 	case Columns::From:
-		return QDateTime::fromTime_t(mktime(&item._from)).toString("ddd dd.MM.yyyy hh:mm");
+		return QDateTime::fromSecsSinceEpoch(mktime(&item._from)).toString("ddd dd.MM.yyyy hh:mm");
 	case Columns::Until:
-		return QDateTime::fromTime_t(mktime(&item._until)).toString("ddd dd.MM.yyyy hh:mm");
+		return QDateTime::fromSecsSinceEpoch(mktime(&item._until)).toString("ddd dd.MM.yyyy hh:mm");
 	case Columns::Status:
 		return TimeTableItemModel::status_to_string(item._status);
 	case Columns::TicketKey:
