@@ -29,9 +29,9 @@ TimeTac2Jira::TimeTac2Jira(QWidget* parent)
 void TimeTac2Jira::setup_ui()
 {
 #ifdef _DEBUG
-	ui.txtJiraServer->setText("dev-rh.atlassian.net");
-	ui.txtJiraUsername->setText("dev.rhintersteininger@gmail.com");
-	ui.txtJiraPassword->setText("bHpyPhj3OSOgesa99zrM468D");
+	ui.txtJiraServer->setText("");
+	ui.txtJiraUsername->setText("");
+	ui.txtJiraPassword->setText("");
 
 	_loadedTimeTacCsvFileName = "C:\\temp\\timeTac.csv";
 	ui.lblLoadedCsvFile->setText(_loadedTimeTacCsvFileName);
@@ -55,7 +55,28 @@ void TimeTac2Jira::bind_signal_slots()
 	connect(ui.tblTimeTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(custom_context_menu_requested(QPoint)));
 	connect(ui.checkAutoSearchTickets, &QCheckBox::stateChanged, this, &TimeTac2Jira::use_auto_ticket_search_changed);
 	connect(ui.btnLoadOutlookCsvFile, &QPushButton::clicked, this, &TimeTac2Jira::load_outlook_csv_file);
+	connect(ui.btnTestConnection, &QPushButton::clicked, this, &TimeTac2Jira::test_jira_connection);
 }
+
+void TimeTac2Jira::test_jira_connection(bool checked)
+{
+	if (_jiraClient == nullptr)
+		_jiraClient = std::make_shared<Jira::JiraHttpClient>(ui.txtJiraUsername->text().toStdString(), ui.txtJiraPassword->text().toStdString(), ui.txtJiraServer->text().toStdString(), 443);
+
+	try
+	{
+		auto currentUser = _jiraClient->get_current_user();
+		if (currentUser.get_account_id() != nullptr)
+		{
+			QMessageBox::information(this, "TestConnecteion successfull", std::string("Test Successfull UserId: " + *currentUser.get_account_id()).c_str(), QMessageBox::Ok);
+		}
+	}
+	catch (std::exception const& ex)
+	{
+		QMessageBox::information(this, "TestConnection failed", ex.what(), QMessageBox::Ok);
+	}
+}
+
 
 void TimeTac2Jira::load_outlook_csv_file(bool checked)
 {

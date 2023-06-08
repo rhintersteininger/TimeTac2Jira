@@ -33,6 +33,7 @@ private:
     std::shared_ptr<Jira::JiraHttpClient> _jiraClient;
     TimeTac::TimeTableEntryTableModel _timeTableEntryTableModel = TimeTac::TimeTableEntryTableModel(this);
 
+    void test_jira_connection(bool checked);
     void setup_ui();
     void bind_signal_slots();
     void prefill_data_with_events();
