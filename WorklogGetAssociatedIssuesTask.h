@@ -59,7 +59,13 @@ private:
 		try
 		{
 			std::stringstream jql;
-			jql << "status WAS \"In Progress\" BY \"" << _userId << "\" DURING (\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._from) << "\",\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._until) << "\")";
+			//"status WAS" in combinanation with Time Specifier like "DURING, AFTER, BEFORE, ..." does not work anymore -> jira bug
+			//jql << "status WAS \"In Progress\" BY \"" << _userId << "\" DURING (\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._from) << "\",\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._until) << "\")";
+			
+			//for now use status changed to "In Progress"
+			jql << "project = \"Firstscreen UI\" AND status CHANGED TO \"In Progress\" BY \"" << _userId <<
+				"\" DURING (\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._from) << "\",\"" << TimeTac::TimeTableItemModel::to_jira_string_short(&item_._until) << "\")";
+
 			std::string jqlstr = jql.str();
 			Jira::Data::SearchResults* results = new Jira::Data::SearchResults(_jiraClient->search(jql.str()));
 			return results;
